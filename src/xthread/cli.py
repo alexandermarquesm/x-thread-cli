@@ -306,6 +306,40 @@ def open_thread(
         console.print("[dim]Use 'xthread list' para ver todas as threads disponíveis.[/dim]")
 
 
+@app.command(name="serve", help="Inicia um servidor web local para navegar na biblioteca pelo navegador.")
+def serve(
+    port: Annotated[int, typer.Option("-p", "--port", help="Porta do servidor local")] = 8080,
+    no_browser: Annotated[bool, typer.Option("--no-browser", help="Não abrir o navegador automaticamente")] = False,
+):
+    """Start local web server for the threads library."""
+    base_dir = get_threads_dir()
+    threads = scan_saved_threads(base_dir)
+    hub_path = base_dir / "index.html"
+    try:
+        generate_library_hub_html(threads, hub_path)
+    except Exception:
+        pass
+
+    import functools
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(base_dir))
+    url = f"http://localhost:{port}"
+
+    console.print(f"\n[bold green]⚡ Servidor local iniciado com sucesso![/bold green]")
+    console.print(f"[bold cyan]Acesse no seu navegador:[/bold cyan] [underline]{url}[/underline]")
+    console.print(f"[dim]Pressione Ctrl+C para encerrar o servidor.[/dim]\n")
+
+    if not no_browser:
+        webbrowser.open(url)
+
+    try:
+        with ThreadingHTTPServer(("0.0.0.0", port), handler) as httpd:
+            httpd.serve_forever()
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Servidor encerrado.[/yellow]")
+
+
 @app.command(name="auth", help="Configura a sua sessão do X (auth_token e ct0) sem abrir navegador.")
 def auth():
     """Setup or update X session cookies."""
@@ -395,7 +429,7 @@ def version():
 
 def main():
     """Entry point with smart routing for `xthread <url>`."""
-    commands = {"status", "auth", "download", "list", "ls", "open", "logout", "version", "--help", "-h", "--install-completion", "--show-completion"}
+    commands = {"status", "auth", "download", "list", "ls", "open", "serve", "logout", "version", "--help", "-h", "--install-completion", "--show-completion"}
     args = sys.argv[1:]
 
     # If first argument is provided and is not a subcommand or option flag, auto-route to 'download'

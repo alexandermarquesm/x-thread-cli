@@ -135,6 +135,9 @@ xthread list --open
 # ou simplesmente:
 xthread open
 
+# Iniciar um servidor web local e abrir http://localhost:8080
+xthread serve
+
 # Abrir uma thread específica diretamente no navegador (pelo número # ou autor)
 xthread open 1
 xthread open meianoite
@@ -169,6 +172,7 @@ Na barra superior de controle você pode:
 | `xthread download <url> [OPÇÕES]` | Comando explícito com suporte a todas as flags |
 | `xthread list` (ou `ls`) | Lista todas as threads salvas no terminal ou abre o hub (`--open`) |
 | `xthread open [ALVO]` | Abre uma thread (# ou autor) ou a biblioteca completa no navegador |
+| `xthread serve` | Inicia servidor HTTP local (`http://localhost:8080`) para navegar na biblioteca |
 | `xthread auth` | Assistente interativo para salvar cookies de sessão |
 | `xthread status` | Verifica se os cookies continuam válidos junto ao X |
 | `xthread logout` | Remove os cookies e sessões armazenadas localmente |
