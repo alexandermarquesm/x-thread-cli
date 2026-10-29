@@ -1,108 +1,178 @@
+<div align="center">
+
 # ⚡ xthread
 
-> **CLI de alta performance para Linux para arquivar e baixar threads completas do X (Twitter).**  
-> 100% headless (zero navegadores abrindo), sem custos e sem necessidade de API oficial paga.
+**Downloader de alta performance para arquivar threads completas do X (Twitter) com mídias e leitor visual no Linux.**
+
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey?style=for-the-badge&logo=linux)](https://github.com)
+[![uv](https://img.shields.io/badge/Package%20Manager-uv-blueviolet?style=for-the-badge)](https://github.com/astral-sh/uv)
+[![Architecture](https://img.shields.io/badge/Architecture-100%25%20Headless%20Async-orange?style=for-the-badge)](https://github.com)
+
+*Zero navegadores abrindo, zero custos de API e com leitor HTML interativo nos estilos **𝕏 Original** e **Steam Classic (2004)**.*
+
+[Instalação](#-instalação) • [Como Usar](#-como-usar) • [Formatos e Leitor HTML](#-leitor-html-exclusivo) • [Comandos](#-comandos-da-cli) • [Licença](#-licença)
+
+</div>
 
 ---
 
-## 🚀 Destaques
+## 🌟 Principais Recursos
 
-- **Zero Janelas de Navegador:** Utiliza requisições GraphQL assíncronas diretas via HTTP, sem abrir navegadores ou interfaces visuais.
-- **Alta Performance:** Construído em Python assíncrono (`httpx` + `asyncio`) com downloads paralelos de mídia controlados por semáforos.
-- **Narrativa Reconstruída:** Segue a árvore de respostas do autor original e preserva a ordem cronológica correta (1/N, 2/N, 3/N...).
-- **Suporte a Mídias em Qualidade Máxima:** Baixa fotos na resolução original (`:orig`) e vídeos no MP4 de maior bitrate.
-- **Múltiplos Formatos de Saída:**
-  - **Markdown (`.md`)**: Com frontmatter YAML (perfeito para Obsidian, Notion ou arquivamento).
-  - **HTML (`index.html`)**: Leitor moderno em modo escuro (*Reader View*), responsivo e pronto para imprimir/salvar em PDF.
-  - **JSON (`.json`)**: Metadados completos estruturados.
-  - **Texto (`.txt`)**: Transcrição limpa sem formatação.
-- **Comando Global:** Integrado ao seu sistema operacional em `~/.local/bin/xthread`.
+- 🚀 **100% Headless & Ultra Rápido:** Utiliza requisições GraphQL assíncronas diretas via HTTP. Não abre janelas de Chromium, Selenium ou Firefox na sua tela.
+- 🧵 **Reconstrução Inteligente de Narrativa:** Mesmo se você colar o link de um tweet no meio ou no fim da conversa, o motor identifica o tweet raiz e reconstrói a árvore inteira do autor em ordem cronológica (1/N, 2/N, 3/N...).
+- 🎨 **Leitor HTML Standalone Dual-View:**
+  - **𝕏 Original (Padrão):** Feed idêntico ao do X na web, com linha vertical conectando avatares, selo verificado, citações e ícones SVG oficiais de interação.
+  - **🎮 Steam Classic (2004-2008):** Recriação nostálgica e fiel da interface verde militar (VGUI) da Steam antiga, com barra de janelas, tabela de biblioteca, abas e painel de leitura.
+- 🌈 **Motor de Temas Integrado:** Alterne instantaneamente entre **Padrão**, **Tokyo Night**, **Dracula**, **Catppuccin Mocha** e **Claro (Daylight)**. A sua preferência fica salva no navegador (`localStorage`).
+- 📥 **Download Paralelo de Mídias:** Baixa fotos na resolução máxima original (`:orig`) e vídeos no formato MP4 de maior bitrate com barra de progresso em tempo real no terminal.
+- 📑 **Exportação Multiformato:** Salva em **Markdown** (com frontmatter YAML pronto para Obsidian/Notion), **HTML**, **JSON** estruturado e **TXT** limpo.
+- 🔒 **Sem API Oficial Paga:** Você não precisa de conta de desenvolvedor do X nem de pagar US$ 100/mês. Basta importar os cookies da sua conta regular uma única vez.
 
 ---
 
-## 📦 Como Usar
+## 📥 Instalação
 
-### 1. Autenticação (Apenas uma vez)
-Como o X exige login para ler threads e respostas completas, configure sua sessão uma única vez:
+### Opção 1: Usando `uv` (Recomendado — Ultrarrápido e Isolado)
+
+Se você já usa o [uv](https://github.com/astral-sh/uv):
+
+```bash
+# Instalar globalmente no seu sistema
+uv tool install git+https://github.com/alexandermarquesm/x-thread-cli.git
+
+# Ou clone localmente e instale:
+git clone https://github.com/alexandermarquesm/x-thread-cli.git ~/projects/x-thread-cli
+cd ~/projects/x-thread-cli
+uv tool install . --force
+```
+
+### Opção 2: Usando `pipx`
+
+```bash
+pipx install git+https://github.com/alexandermarquesm/x-thread-cli.git
+```
+
+### Opção 3: Clonando e Executando Manualmente
+
+```bash
+git clone https://github.com/alexandermarquesm/x-thread-cli.git
+cd x-thread-cli
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+Após instalado, o comando **`xthread`** estará disponível diretamente em qualquer pasta do seu terminal!
+
+---
+
+## 🔑 Configuração Inicial (Apenas uma vez)
+
+O X exige login para ler threads longas e respostas. Configure a sua sessão em 30 segundos:
 
 ```bash
 xthread auth
 ```
 
-O assistente interativo pedirá apenas dois cookies da sua sessão:
-1. Abra o `x.com` no seu navegador atual (onde você já está logado).
-2. Pressione `F12` (Ferramentas do Desenvolvedor) -> Aba **Aplicativo (Application)** ou **Armazenamento** -> **Cookies** -> `https://x.com`.
-3. Copie o valor de **`auth_token`** e **`ct0`** (ou cole o cabeçalho Cookie inteiro).
+1. Abra o [x.com](https://x.com) no seu navegador habitual onde você já está conectado.
+2. Pressione **`F12`** para abrir o Inspecionar Elemento.
+3. Vá em **Aplicativo (Application)** ou **Armazenamento** -> **Cookies** -> `https://x.com`.
+4. Copie os valores de **`auth_token`** e **`ct0`** (ou cole a linha inteira de cookies).
 
-Pronto! Os cookies ficam salvos de forma segura em `~/.config/xthread/`.
+Para testar se a conexão com o X está ativa e válida:
+```bash
+xthread status
+```
 
 ---
 
-### 2. Baixando uma Thread
+## 🚀 Como Usar
 
-Basta passar o link ou ID da thread (pode ser o link do primeiro tweet ou de qualquer tweet no meio da conversa):
+### Baixar uma thread diretamente
+Basta rodar `xthread` seguido da URL do tweet:
 
 ```bash
 xthread https://x.com/usuario/status/1234567890123456789
 ```
 
-### Exemplos de uso:
+### Opções comuns
 
-#### Salvar em uma pasta específica:
 ```bash
+# 1. Escolher onde salvar
 xthread https://x.com/usuario/status/1234567890 -o ~/Downloads/minha_thread
-```
 
-#### Escolher os formatos de saída:
-```bash
-# Apenas Markdown
-xthread https://x.com/usuario/status/1234567890 -f md
-
-# Todos os formatos (Markdown, HTML, JSON, TXT)
+# 2. Exportar todos os formatos (Markdown, HTML, JSON e TXT)
 xthread https://x.com/usuario/status/1234567890 -f all
-```
 
-#### Baixar sem fazer download das fotos/vídeos (mantém links remotos):
-```bash
+# 3. Baixar apenas o texto (sem salvar imagens/vídeos no disco)
 xthread https://x.com/usuario/status/1234567890 --no-media
-```
 
-#### Incluir respostas e comentários de outras pessoas:
-```bash
+# 4. Incluir comentários e respostas de outros usuários
 xthread https://x.com/usuario/status/1234567890 --all-replies
-```
 
-#### Ver pré-visualização no terminal:
-```bash
+# 5. Visualizar a thread formatada diretamente no terminal
 xthread https://x.com/usuario/status/1234567890 -p
+
+# 6. Definir um limite máximo de tweets na thread
+xthread https://x.com/usuario/status/1234567890 -l 50
 ```
 
 ---
 
-## 🛠️ Comandos Disponíveis
+## 🎨 Leitor HTML Exclusivo
+
+O arquivo `index.html` gerado para cada thread é totalmente **autônomo** (funciona 100% offline, sem CDNs externas ou scripts pesados).
+
+Na barra superior de controle você pode:
+1. **Trocar de Design em 1 clique:**
+   - **𝕏 Original:** Visual idêntico ao Twitter/X Web moderno.
+   - **🎮 Steam Old:** Recriação pixel-art da clássica interface verde oliva da Valve Steam de 2004.
+2. **Alternar Temas de Cores:**
+   - 🎨 **Padrão:** Escuro autêntico (Preto puro no X / Verde militar na Steam).
+   - 🌃 **Tokyo Night:** Paleta azulada e roxa de desenvolvedor.
+   - 🧛 **Dracula:** Clássico tema de alto contraste.
+   - ☕ **Catppuccin Mocha:** Tons pastéis confortáveis para leitura prolongada.
+   - ☀️ **Claro (Daylight):** Fundo branco limpo para ambientes iluminados.
+3. **Salvar em PDF / Imprimir:**
+   - Clique no botão `🖨️ PDF` para gerar uma versão limpa para arquivamento ou impressão sem barras laterais.
+
+---
+
+## 🛠️ Comandos da CLI
 
 | Comando | Descrição |
 |---|---|
-| `xthread <url>` | Baixa a thread informada diretamente |
-| `xthread auth` | Configura ou atualiza os cookies da sessão |
-| `xthread status` | Testa a conexão e verifica a validade da sua sessão |
-| `xthread logout` | Apaga os dados de sessão salvos |
-| `xthread version` | Exibe a versão do utilitário |
+| `xthread <url>` | Baixa e reconstrói a thread da URL informada |
+| `xthread download <url> [OPÇÕES]` | Comando explícito com suporte a todas as flags |
+| `xthread auth` | Assistente interativo para salvar cookies de sessão |
+| `xthread status` | Verifica se os cookies continuam válidos junto ao X |
+| `xthread logout` | Remove os cookies e sessões armazenadas localmente |
+| `xthread version` | Exibe a versão atual do software |
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📂 Estrutura do Projeto
 
 ```
-~/projects/x-thread-cli/
-├── pyproject.toml         # Configuração uv e dependências
-├── README.md              # Documentação
+x-thread-cli/
+├── pyproject.toml         # Gerenciamento de dependências via uv
+├── LICENSE                # Licença MIT
+├── README.md              # Documentação completa
 └── src/xthread/
+    ├── __init__.py        # Exportação de comandos
     ├── cli.py             # Interface de linha de comando com Typer e Rich
-    ├── auth.py            # Gerenciamento de credenciais e status
-    ├── crawler.py         # Motor assíncrono de crawling e reconstrução de árvores
-    ├── downloader.py      # Download paralelo de fotos e vídeos com barra de progresso
-    ├── exporter.py        # Exportadores para Markdown, HTML, JSON e TXT
-    ├── models.py          # Modelos de dados com Pydantic
-    └── config.py          # Configurações e diretórios do usuário
+    ├── auth.py            # Validação e armazenamento de cookies
+    ├── crawler.py         # Motor assíncrono de busca e reconstrução da thread
+    ├── downloader.py      # Download paralelo de mídias (fotos originais e vídeos MP4)
+    ├── exporter.py        # Gerador dos formatos Markdown, HTML, JSON e TXT
+    ├── models.py          # Modelos de dados Pydantic
+    └── config.py          # Gerenciamento de configurações e diretórios
 ```
+
+---
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para obter mais informações.
