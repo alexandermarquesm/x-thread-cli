@@ -121,6 +121,44 @@ def export_html(thread: Thread, output_file: Path) -> None:
     """Export thread to an ultra-polished standalone HTML reader with X & Steam Old designs and multi-themes."""
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
+    # 0. Scan other saved threads in library for the right sidebar
+    base_dir = output_file.parent.parent
+    sidebar_threads_html: list[str] = []
+    try:
+        from xthread.library import scan_saved_threads
+        all_saved = scan_saved_threads(base_dir)
+        current_dir_name = output_file.parent.name
+
+        for t in all_saved[:7]:
+            is_cur = (t["dir_name"] == current_dir_name)
+            cur_class = " is-current" if is_cur else ""
+            link_target = f"../{t['html_path']}" if not is_cur else "#"
+            badge = " · (Lendo agora)" if is_cur else ""
+
+            sidebar_threads_html.append(f"""
+            <a href="{link_target}" class="x-trend-item{cur_class}">
+                <div class="trend-category">
+                    <span>Thread · @{t['author_username']}{badge}</span>
+                    <span class="trend-dots">···</span>
+                </div>
+                <div class="trend-title">{t['title']}</div>
+                <div class="trend-posts">{t['total_tweets']} posts · ❤️ {t['total_likes']:,} curtidas</div>
+            </a>
+            """)
+    except Exception:
+        pass
+
+    if not sidebar_threads_html:
+        sidebar_threads_html.append(f"""
+        <div class="x-trend-item is-current">
+            <div class="trend-category">
+                <span>Thread · @{thread.author_username} · (Lendo agora)</span>
+            </div>
+            <div class="trend-title">{thread.title}</div>
+            <div class="trend-posts">{thread.total_tweets} posts · ❤️ {thread.total_likes:,} curtidas</div>
+        </div>
+        """)
+
     # 1. Generate Tweet Elements for X Timeline
     x_tweets_html: list[str] = []
     steam_list_rows: list[str] = []
@@ -553,19 +591,244 @@ def export_html(thread: Thread, output_file: Path) -> None:
         }}
 
         /* ==========================================================================
-           LAYOUT 1: X (TWITTER) ORIGINAL TIMELINE
+           LAYOUT 1: X (TWITTER) ORIGINAL TIMELINE & RIGHT SIDEBAR
            ========================================================================== */
-        .layout-x-container {{
+        .layout-x-wrapper {{
             display: none;
-            max-width: 600px;
+            max-width: 1040px;
             margin: 0 auto;
+            justify-content: center;
+            gap: 30px;
+        }}
+
+        html[data-layout="x-original"] .layout-x-wrapper {{
+            display: flex;
+        }}
+
+        .layout-x-container {{
+            width: 600px;
+            flex-shrink: 0;
             border-left: 1px solid var(--border);
             border-right: 1px solid var(--border);
             min-height: 100vh;
         }}
 
-        html[data-layout="x-original"] .layout-x-container {{
+        /* X Right Sidebar (Trends & Author Widget) */
+        .x-right-sidebar {{
+            width: 350px;
+            flex-shrink: 0;
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 54px;
+            height: fit-content;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+        }}
+
+        .x-sidebar-search {{
+            position: relative;
+            display: flex;
+            align-items: center;
+        }}
+
+        .search-icon {{
+            position: absolute;
+            left: 14px;
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }}
+
+        .x-sidebar-search input {{
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 9999px;
+            padding: 10px 16px 10px 42px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }}
+
+        .x-sidebar-search input:focus {{
+            border-color: var(--accent);
+        }}
+
+        .x-sidebar-card {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }}
+
+        .x-card-heading {{
+            font-size: 19px;
+            font-weight: 800;
+            padding: 12px 16px;
+            color: var(--text);
+            line-height: 1.3;
+        }}
+
+        .author-row {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px 14px 16px;
+        }}
+
+        .x-avatar.small {{
+            width: 40px;
+            height: 40px;
+            font-size: 15px;
+        }}
+
+        .author-info {{
+            flex-grow: 1;
+            min-width: 0;
+        }}
+
+        .author-name-row {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }}
+
+        .author-info .x-name {{
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }}
+
+        .author-info .x-handle {{
+            font-size: 13px;
+            color: var(--text-muted);
             display: block;
+        }}
+
+        .x-follow-btn {{
+            background: var(--text);
+            color: var(--bg) !important;
+            border-radius: 9999px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }}
+
+        .x-follow-btn:hover {{
+            opacity: 0.9;
+            text-decoration: none;
+        }}
+
+        html[data-theme="light"] .x-follow-btn {{
+            background: #0f1419;
+            color: #ffffff !important;
+        }}
+
+        .x-trend-item {{
+            display: block;
+            padding: 10px 16px;
+            text-decoration: none;
+            transition: background-color 0.15s ease;
+            border-top: 1px solid var(--border-light);
+        }}
+
+        .x-trend-item:hover {{
+            background-color: var(--surface-hover);
+            text-decoration: none;
+        }}
+
+        .x-trend-item.is-current {{
+            background-color: var(--surface-hover);
+        }}
+
+        .trend-category {{
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+
+        .trend-dots {{
+            font-size: 16px;
+            color: var(--text-muted);
+        }}
+
+        .trend-title {{
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 3px 0;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }}
+
+        .trend-posts {{
+            font-size: 12px;
+            color: var(--text-muted);
+        }}
+
+        .x-show-more {{
+            display: block;
+            padding: 14px 16px;
+            color: var(--accent);
+            font-size: 14px;
+            text-decoration: none;
+            border-top: 1px solid var(--border-light);
+            transition: background-color 0.15s ease;
+        }}
+
+        .x-show-more:hover {{
+            background-color: var(--surface-hover);
+            text-decoration: none;
+        }}
+
+        .x-sidebar-footer {{
+            padding: 0 16px 20px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }}
+
+        .x-sidebar-footer a {{
+            color: var(--text-muted);
+            text-decoration: none;
+        }}
+
+        .x-sidebar-footer a:hover {{
+            text-decoration: underline;
+        }}
+
+        @media (max-width: 1024px) {{
+            .x-right-sidebar {{
+                display: none !important;
+            }}
+            .layout-x-wrapper {{
+                justify-content: center;
+            }}
+            .layout-x-container {{
+                width: 100%;
+                max-width: 600px;
+                border-left: none;
+                border-right: none;
+            }}
         }}
 
         /* X Top Feed Header */
@@ -1288,25 +1551,76 @@ def export_html(thread: Thread, output_file: Path) -> None:
     </header>
 
     <!-- ==========================================================================
-         LAYOUT 1: X (TWITTER) ORIGINAL TIMELINE
+         LAYOUT 1: X (TWITTER) ORIGINAL TIMELINE & RIGHT SIDEBAR
          ========================================================================== -->
-    <main class="layout-x-container">
-        <!-- Feed Top Bar -->
-        <div class="x-feed-header">
-            <div>
-                <h1 class="x-header-title">{thread.author_name}</h1>
-                <div class="x-header-meta">{thread.total_tweets} posts • {thread.created_at.strftime('%d de %b')} • ❤️ {thread.total_likes:,}</div>
+    <div class="layout-x-wrapper">
+        <main class="layout-x-container">
+            <!-- Feed Top Bar -->
+            <div class="x-feed-header">
+                <div>
+                    <h1 class="x-header-title">{thread.author_name}</h1>
+                    <div class="x-header-meta">{thread.total_tweets} posts • {thread.created_at.strftime('%d de %b')} • ❤️ {thread.total_likes:,}</div>
+                </div>
+                <div class="x-header-logo">
+                    {SVG_X_LOGO}
+                </div>
             </div>
-            <div class="x-header-logo">
-                {SVG_X_LOGO}
-            </div>
-        </div>
 
-        <!-- Tweets List -->
-        <section class="x-timeline-feed">
-            {"".join(x_tweets_html)}
-        </section>
-    </main>
+            <!-- Tweets List -->
+            <section class="x-timeline-feed">
+                {"".join(x_tweets_html)}
+            </section>
+        </main>
+
+        <!-- RIGHT SIDEBAR (O QUE ESTÁ ACONTECENDO / THREADS SALVAS) -->
+        <aside class="x-right-sidebar">
+            <div class="x-sidebar-search">
+                <svg viewBox="0 0 24 24" class="search-icon" fill="currentColor">
+                    <path d="M10.25 3.75c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5c1.79 0 3.42-.73 4.6-1.9l4.47 4.47 1.41-1.41-4.47-4.47c1.17-1.18 1.9-2.81 1.9-4.6 0-3.59-2.91-6.5-6.5-6.5zm-4.5 6.5c0-2.48 2.02-4.5 4.5-4.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5-4.5-2.02-4.5-4.5z"/>
+                </svg>
+                <input type="text" id="sidebarSearch" placeholder="Buscar nas threads..." oninput="filterSidebarThreads(this.value)" />
+            </div>
+
+            <!-- Pessoas relevantes / Autor -->
+            <div class="x-sidebar-card author-card">
+                <h3 class="x-card-heading">Pessoas relevantes</h3>
+                <div class="author-row">
+                    <div class="x-avatar small">
+                        <span>{avatar_initial}</span>
+                    </div>
+                    <div class="author-info">
+                        <div class="author-name-row">
+                            <strong class="x-name">{thread.author_name}</strong>
+                            {SVG_VERIFIED}
+                        </div>
+                        <span class="x-handle">@{thread.author_username}</span>
+                    </div>
+                    <a href="{thread.original_url}" target="_blank" rel="noopener" class="x-follow-btn">
+                        Ver no X ↗
+                    </a>
+                </div>
+            </div>
+
+            <!-- O que você salvou / Threads Widget -->
+            <div class="x-sidebar-card trends-card">
+                <h3 class="x-card-heading">O que você salvou</h3>
+                <div class="x-trends-list" id="sidebarThreadsList">
+                    {"".join(sidebar_threads_html)}
+                </div>
+                <a href="../index.html" class="x-show-more">
+                    Mostrar mais (Ver todas na Biblioteca) ➔
+                </a>
+            </div>
+
+            <footer class="x-sidebar-footer">
+                <a href="../index.html">Biblioteca Central</a>
+                <span>·</span>
+                <a href="{thread.original_url}" target="_blank">Post Original</a>
+                <span>·</span>
+                <span>xthread</span>
+            </footer>
+        </aside>
+    </div>
 
     <!-- ==========================================================================
          LAYOUT 2: STEAM CLASSIC (2004-2008 GREEN VGUI SKIN)
@@ -1451,6 +1765,15 @@ def export_html(thread: Thread, output_file: Path) -> None:
                 alert('Link copiado para a área de transferência!');
             }}).catch(() => {{
                 alert('URL: ' + window.location.href);
+            }});
+        }}
+
+        function filterSidebarThreads(query) {{
+            const q = query.toLowerCase();
+            const items = document.querySelectorAll('.x-trend-item');
+            items.forEach(item => {{
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(q) ? 'block' : 'none';
             }});
         }}
 
