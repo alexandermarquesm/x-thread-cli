@@ -1,0 +1,23 @@
+[project]
+name = "xthread"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "alexandermarquesm", email = "alexandermarquesoficial@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.14.1",
+    "rich>=15.0.0",
+    "twscrape>=0.20.1",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+xthread = "xthread:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
