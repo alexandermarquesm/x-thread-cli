@@ -119,6 +119,27 @@ xthread https://x.com/usuario/status/1234567890 -p
 xthread https://x.com/usuario/status/1234567890 -l 50
 ```
 
+### 📚 Gerenciar e Abrir Threads Salvas
+
+Você pode navegar e visualizar toda a sua coleção salva tanto pelo terminal quanto pelo navegador:
+
+```bash
+# Listar todas as threads salvas em uma tabela estilizada no terminal
+xthread list
+
+# Filtrar threads por termo ou autor
+xthread list -q meianoite
+
+# Abrir a Biblioteca Visual (Dashboard) no navegador
+xthread list --open
+# ou simplesmente:
+xthread open
+
+# Abrir uma thread específica diretamente no navegador (pelo número # ou autor)
+xthread open 1
+xthread open meianoite
+```
+
 ---
 
 ## 🎨 Leitor HTML Exclusivo
@@ -146,6 +167,8 @@ Na barra superior de controle você pode:
 |---|---|
 | `xthread <url>` | Baixa e reconstrói a thread da URL informada |
 | `xthread download <url> [OPÇÕES]` | Comando explícito com suporte a todas as flags |
+| `xthread list` (ou `ls`) | Lista todas as threads salvas no terminal ou abre o hub (`--open`) |
+| `xthread open [ALVO]` | Abre uma thread (# ou autor) ou a biblioteca completa no navegador |
 | `xthread auth` | Assistente interativo para salvar cookies de sessão |
 | `xthread status` | Verifica se os cookies continuam válidos junto ao X |
 | `xthread logout` | Remove os cookies e sessões armazenadas localmente |

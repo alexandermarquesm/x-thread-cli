@@ -15,7 +15,7 @@ DB_FILE = CONFIG_DIR / "accounts.db"
 DEFAULT_CONFIG: dict[str, Any] = {
     "default_output_dir": "./threads",
     "download_media": True,
-    "default_formats": ["markdown"],
+    "default_formats": ["markdown", "html"],
     "concurrency": 6,
     "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
 }
@@ -55,3 +55,27 @@ def save_config(cfg: dict[str, Any]) -> None:
     ensure_config_dir()
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+
+def has_thread_subdirs(p: Path) -> bool:
+    """Check if directory contains at least one saved thread subdirectory."""
+    if not p.exists() or not p.is_dir():
+        return False
+    try:
+        return any(x.is_dir() and x.name != "media" for x in p.iterdir())
+    except Exception:
+        return False
+
+
+def get_threads_dir() -> Path:
+    """Get resolved threads directory, checking local ./threads and ~/threads."""
+    cfg = load_config()
+    p = Path(cfg.get("default_output_dir", "./threads")).expanduser()
+    if has_thread_subdirs(p):
+        return p.resolve()
+    
+    home_threads = Path.home() / "threads"
+    if has_thread_subdirs(home_threads):
+        return home_threads.resolve()
+        
+    return p.resolve()

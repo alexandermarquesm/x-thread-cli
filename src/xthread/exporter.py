@@ -1278,6 +1278,9 @@ def export_html(thread: Thread, output_file: Path) -> None:
             <button class="nav-btn" onclick="window.print()" title="Salvar em PDF ou Imprimir">
                 🖨️ PDF
             </button>
+            <a href="../index.html" class="nav-btn" title="Ver todas as threads salvas">
+                📚 Biblioteca
+            </a>
             <a href="{thread.original_url}" target="_blank" rel="noopener" class="nav-btn" title="Abrir no X original">
                 ↗ X.com
             </a>
@@ -1337,7 +1340,7 @@ def export_html(thread: Thread, output_file: Path) -> None:
                 <div class="steam-arrow-btn">◀</div>
                 <div class="steam-arrow-btn">▶</div>
             </div>
-            <div class="steam-tab">Store</div>
+            <a href="../index.html" class="steam-tab" style="text-decoration:none;" title="Voltar para a Biblioteca">◀ Library Hub</a>
             <div class="steam-tab">Community</div>
             <div class="steam-tab active">My thread ({thread.total_tweets})</div>
             <div class="steam-tab">My media ({sum(len(t.media) for t in thread.tweets)})</div>

@@ -2,6 +2,8 @@
 
 import asyncio
 import sys
+import webbrowser
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -12,11 +14,12 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.prompt import Prompt
 
-from xthread.config import APP_NAME, APP_VERSION, load_config
+from xthread.config import APP_NAME, APP_VERSION, load_config, get_threads_dir
 from xthread.auth import add_session, check_auth_status, clear_all_sessions
 from xthread.crawler import ThreadCrawler, extract_tweet_id
 from xthread.downloader import MediaDownloader
 from xthread.exporter import export_markdown, export_json, export_html, export_txt
+from xthread.library import scan_saved_threads, generate_library_hub_html
 
 app = typer.Typer(
     name=APP_NAME,
@@ -31,7 +34,7 @@ def render_banner():
     """Print welcoming banner."""
     console.print(
         Panel.fit(
-            f"[bold cyan]⚡ {APP_NAME.upper()} v{APP_VERSION}[/bold cyan] - [bold white]Downloader de Threads do X[/bold white]\n"
+            f"[bold cyan]⚡ {APP_NAME.upper()} v{APP_VERSION}[/bold cyan] - [bold white]Downloader & Biblioteca de Threads do X[/bold white]\n"
             f"[dim]Rápido, silencioso, sem navegador e sem API paga.[/dim]",
             border_style="cyan",
         )
@@ -90,10 +93,10 @@ async def execute_download(
     console.print(Panel(summary_table, title="[bold green]✓ Thread Localizada[/bold green]", border_style="green"))
 
     # Determine output directory
+    base_dir = Path(cfg.get("default_output_dir", "./threads")).expanduser()
     if output:
         dest_dir = output
     else:
-        base_dir = Path(cfg.get("default_output_dir", "./threads")).expanduser()
         dest_dir = base_dir / thread.slug
 
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -138,6 +141,15 @@ async def execute_download(
             saved_files.append(target)
             console.print(f"  [green]• Texto simples:[/green] {target}")
 
+    # 4. Automatically update Central Library Hub (threads/index.html)
+    try:
+        threads_scanned = scan_saved_threads(base_dir)
+        hub_path = base_dir / "index.html"
+        generate_library_hub_html(threads_scanned, hub_path)
+        console.print(f"  [dim]• Biblioteca atualizada:[/dim] [cyan]{hub_path}[/cyan]")
+    except Exception:
+        pass
+
     # Optional Live Terminal Preview
     if preview:
         console.print("\n[bold cyan]Pré-visualização da Thread:[/bold cyan]\n")
@@ -176,6 +188,122 @@ def download(
             limit=limit,
         )
     )
+
+
+@app.command(name="list", help="Lista e gerencia todas as threads salvas no diretório local.")
+def list_threads(
+    open_hub: Annotated[bool, typer.Option("-o", "--open", help="Abrir a biblioteca visual no navegador")] = False,
+    query: Annotated[Optional[str], typer.Option("-q", "--query", help="Filtrar por autor ou título")] = None,
+):
+    """List all saved threads in a styled Rich table and update the Library Hub."""
+    base_dir = get_threads_dir()
+
+    threads = scan_saved_threads(base_dir)
+
+    # Re-generate library index.html
+    hub_path = base_dir / "index.html"
+    try:
+        generate_library_hub_html(threads, hub_path)
+    except Exception:
+        pass
+
+    if query:
+        q = query.lower()
+        threads = [t for t in threads if q in t["title"].lower() or q in t["author_name"].lower() or q in t["author_username"].lower()]
+
+    if not threads:
+        console.print(f"\n[bold yellow]Nenhuma thread encontrada em:[/bold yellow] {base_dir}")
+        console.print("[dim]Baixe uma thread com: xthread <url>[/dim]\n")
+        return
+
+    table = Table(
+        title=f"📚 Biblioteca de Threads Salvas ({len(threads)} encontradas)",
+        border_style="cyan",
+        header_style="bold cyan",
+    )
+    table.add_column("#", style="bold yellow", width=4)
+    table.add_column("Autor", style="bold white")
+    table.add_column("Título", style="cyan")
+    table.add_column("Tweets", justify="right", style="green")
+    table.add_column("Mídias", justify="right")
+    table.add_column("Curtidas", justify="right", style="magenta")
+    table.add_column("Data", style="dim")
+
+    for idx, t in enumerate(threads, 1):
+        dt_fmt = t["created_at_dt"].strftime("%d/%m/%Y") if t["created_at_dt"] != datetime.min else "Recente"
+        table.add_row(
+            str(idx),
+            f"{t['author_name']} (@{t['author_username']})",
+            t["title"][:42] + ("..." if len(t["title"]) > 42 else ""),
+            str(t["total_tweets"]),
+            f"{t['media_count']} arq." if t["media_count"] > 0 else "-",
+            f"❤️ {t['total_likes']:,}",
+            dt_fmt,
+        )
+
+    console.print()
+    console.print(table)
+    console.print(f"\n[dim]Diretório base:[/dim] [bold]{base_dir}[/bold]")
+    console.print(f"[dim]Biblioteca visual:[/dim] [cyan]{hub_path}[/cyan]")
+    console.print("[dim]Abra no navegador com: [bold cyan]xthread list --open[/bold cyan] ou [bold cyan]xthread open <#>[/bold cyan]\n[/dim]")
+
+    if open_hub:
+        webbrowser.open(f"file://{hub_path.resolve()}")
+
+
+@app.command(name="ls", hidden=True)
+def ls_threads(
+    open_hub: Annotated[bool, typer.Option("-o", "--open", help="Abrir a biblioteca visual no navegador")] = False,
+    query: Annotated[Optional[str], typer.Option("-q", "--query", help="Filtrar por autor ou título")] = None,
+):
+    """Alias for list."""
+    list_threads(open_hub=open_hub, query=query)
+
+
+@app.command(name="open", help="Abre uma thread salva ou a biblioteca visual no seu navegador.")
+def open_thread(
+    target: Annotated[Optional[str], typer.Argument(help="Número da thread (#), parte do nome ou autor (ou vazio para abrir a biblioteca)")] = None,
+):
+    """Open a saved thread or library hub in browser."""
+    base_dir = get_threads_dir()
+    threads = scan_saved_threads(base_dir)
+
+    hub_path = base_dir / "index.html"
+    try:
+        generate_library_hub_html(threads, hub_path)
+    except Exception:
+        pass
+
+    if not target:
+        console.print(f"[bold cyan]Abrindo Biblioteca de Threads no navegador...[/bold cyan]")
+        webbrowser.open(f"file://{hub_path.resolve()}")
+        return
+
+    # Check if target is a numeric index (1, 2, 3...)
+    if target.isdigit():
+        idx = int(target) - 1
+        if 0 <= idx < len(threads):
+            chosen = threads[idx]
+            chosen_html = base_dir / chosen["html_path"]
+            console.print(f"[bold green]Abrindo Thread #{target} ({chosen['title'][:35]}...)[/bold green]")
+            webbrowser.open(f"file://{chosen_html.resolve()}")
+            return
+        else:
+            console.print(f"[bold red]❌ Índice inválido:[/bold red] escolha um número entre 1 e {len(threads)}")
+            return
+
+    # Otherwise search by name
+    q = target.lower()
+    matches = [t for t in threads if q in t["title"].lower() or q in t["author_username"].lower() or q in t["author_name"].lower()]
+
+    if matches:
+        chosen = matches[0]
+        chosen_html = base_dir / chosen["html_path"]
+        console.print(f"[bold green]Abrindo thread de @{chosen['author_username']}...[/bold green]")
+        webbrowser.open(f"file://{chosen_html.resolve()}")
+    else:
+        console.print(f"[bold red]❌ Nenhuma thread encontrada correspondente a '{target}'.[/bold red]")
+        console.print("[dim]Use 'xthread list' para ver todas as threads disponíveis.[/dim]")
 
 
 @app.command(name="auth", help="Configura a sua sessão do X (auth_token e ct0) sem abrir navegador.")
@@ -267,7 +395,7 @@ def version():
 
 def main():
     """Entry point with smart routing for `xthread <url>`."""
-    commands = {"status", "auth", "download", "logout", "version", "--help", "-h", "--install-completion", "--show-completion"}
+    commands = {"status", "auth", "download", "list", "ls", "open", "logout", "version", "--help", "-h", "--install-completion", "--show-completion"}
     args = sys.argv[1:]
 
     # If first argument is provided and is not a subcommand or option flag, auto-route to 'download'
